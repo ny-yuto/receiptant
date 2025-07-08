@@ -1,0 +1,457 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import Link from "next/link";
+import { Id } from "../../../../convex/_generated/dataModel";
+
+export default function ExpensesList() {
+  const categories = useQuery(api.categories.getCategories) || [];
+  
+  // フィルター状態
+  const [filters, setFilters] = useState({
+    searchText: "",
+    category: "",
+    status: "",
+    dateFrom: "",
+    dateTo: "",
+    amountMin: "",
+    amountMax: "",
+    paymentMethod: "",
+    hasReceipt: "",
+    isDeductible: "",
+    sortBy: "date",
+    sortOrder: "desc",
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+
+  // 検索クエリを実行
+  const searchResult = useQuery(api.expenses.searchExpenses, {
+    searchText: filters.searchText || undefined,
+    category: filters.category || undefined,
+    status: filters.status || undefined,
+    dateFrom: filters.dateFrom || undefined,
+    dateTo: filters.dateTo || undefined,
+    amountMin: filters.amountMin ? parseFloat(filters.amountMin) : undefined,
+    amountMax: filters.amountMax ? parseFloat(filters.amountMax) : undefined,
+    paymentMethod: filters.paymentMethod || undefined,
+    hasReceipt: filters.hasReceipt === "" ? undefined : filters.hasReceipt === "true",
+    isDeductible: filters.isDeductible === "" ? undefined : filters.isDeductible === "true",
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
+    cursor: cursor || undefined,
+    limit: 20,
+  });
+
+  // 集計データを取得
+  const summary = useQuery(api.expenses.getExpensesSummary, {
+    dateFrom: filters.dateFrom || undefined,
+    dateTo: filters.dateTo || undefined,
+  });
+
+  const deleteExpense = useMutation(api.expenses.deleteExpense);
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFilters({
+      ...filters,
+      [e.target.name]: e.target.value,
+    });
+    setCursor(null); // フィルター変更時はページネーションをリセット
+  };
+
+  const handleDelete = async (id: Id<"expenses">) => {
+    if (window.confirm("この経費を削除してもよろしいですか？")) {
+      try {
+        await deleteExpense({ id });
+      } catch {
+        alert("削除に失敗しました");
+      }
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      searchText: "",
+      category: "",
+      status: "",
+      dateFrom: "",
+      dateTo: "",
+      amountMin: "",
+      amountMax: "",
+      paymentMethod: "",
+      hasReceipt: "",
+      isDeductible: "",
+      sortBy: "date",
+      sortOrder: "desc",
+    });
+    setCursor(null);
+  };
+
+  if (!searchResult || !summary) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-900">経費一覧</h1>
+            <Link
+              href="/dashboard/receipt/new"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              新規登録
+            </Link>
+          </div>
+        </div>
+
+        {/* 集計情報 */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-500 truncate">合計金額</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                ¥{summary.totalAmount.toLocaleString()}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-500 truncate">件数</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                {summary.totalCount}件
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-500 truncate">控除対象額</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                ¥{summary.deductibleAmount.toLocaleString()}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-500 truncate">検索結果</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                {searchResult.totalCount}件
+              </dd>
+            </div>
+          </div>
+        </div>
+
+        {/* 検索・フィルター */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <input
+                type="text"
+                name="searchText"
+                value={filters.searchText}
+                onChange={handleFilterChange}
+                placeholder="支払先、備考、目的、請求書番号で検索..."
+                className="flex-1 mr-4 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                {showFilters ? "フィルターを隠す" : "詳細フィルター"}
+              </button>
+            </div>
+          </div>
+
+          {showFilters && (
+            <div className="px-6 py-4 bg-gray-50">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* カテゴリ */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">カテゴリ</label>
+                  <select
+                    name="category"
+                    value={filters.category}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">すべて</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* ステータス */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">ステータス</label>
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">すべて</option>
+                    <option value="draft">下書き</option>
+                    <option value="confirmed">確認済み</option>
+                    <option value="submitted">提出済み</option>
+                  </select>
+                </div>
+
+                {/* 支払方法 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">支払方法</label>
+                  <select
+                    name="paymentMethod"
+                    value={filters.paymentMethod}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">すべて</option>
+                    <option value="現金">現金</option>
+                    <option value="クレジットカード">クレジットカード</option>
+                    <option value="銀行振込">銀行振込</option>
+                    <option value="電子マネー">電子マネー</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+
+                {/* 日付範囲 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">開始日</label>
+                  <input
+                    type="date"
+                    name="dateFrom"
+                    value={filters.dateFrom}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">終了日</label>
+                  <input
+                    type="date"
+                    name="dateTo"
+                    value={filters.dateTo}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+
+                {/* 金額範囲 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">最小金額</label>
+                  <input
+                    type="number"
+                    name="amountMin"
+                    value={filters.amountMin}
+                    onChange={handleFilterChange}
+                    placeholder="0"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">最大金額</label>
+                  <input
+                    type="number"
+                    name="amountMax"
+                    value={filters.amountMax}
+                    onChange={handleFilterChange}
+                    placeholder="999999"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+
+                {/* その他のフィルター */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">レシート</label>
+                  <select
+                    name="hasReceipt"
+                    value={filters.hasReceipt}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">すべて</option>
+                    <option value="true">あり</option>
+                    <option value="false">なし</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">控除対象</label>
+                  <select
+                    name="isDeductible"
+                    value={filters.isDeductible}
+                    onChange={handleFilterChange}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  >
+                    <option value="">すべて</option>
+                    <option value="true">対象</option>
+                    <option value="false">対象外</option>
+                  </select>
+                </div>
+
+                {/* ソート */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">並び順</label>
+                  <div className="mt-1 flex space-x-2">
+                    <select
+                      name="sortBy"
+                      value={filters.sortBy}
+                      onChange={handleFilterChange}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="date">日付</option>
+                      <option value="amount">金額</option>
+                      <option value="vendor">支払先</option>
+                    </select>
+                    <select
+                      name="sortOrder"
+                      value={filters.sortOrder}
+                      onChange={handleFilterChange}
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="desc">降順</option>
+                      <option value="asc">昇順</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  フィルターをクリア
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 経費一覧 */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+          <ul className="divide-y divide-gray-200">
+            {searchResult.expenses.length === 0 ? (
+              <li className="px-6 py-12 text-center text-gray-500">
+                該当する経費が見つかりません
+              </li>
+            ) : (
+              searchResult.expenses.map((expense) => (
+                <li key={expense._id}>
+                  <div className="px-6 py-4 hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {expense.vendor}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {expense.category} • {expense.date}
+                              {expense.projectCode && ` • ${expense.projectCode}`}
+                            </p>
+                            {expense.description && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {expense.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              ¥{expense.amount.toLocaleString()}
+                            </p>
+                            {expense.taxRate && (
+                              <p className="text-xs text-gray-500">
+                                税込（{expense.taxRate}%）
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              expense.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                              expense.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {expense.status === 'draft' ? '下書き' :
+                               expense.status === 'confirmed' ? '確認済み' :
+                               '提出済み'}
+                            </span>
+                            {expense.receipt && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                レシートあり
+                              </span>
+                            )}
+                            {expense.invoiceNumber && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                インボイス
+                              </span>
+                            )}
+                            {expense.isDeductible === false && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                控除対象外
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Link
+                              href={`/dashboard/expenses/${expense._id}/edit`}
+                              className="text-sm text-blue-600 hover:text-blue-900"
+                            >
+                              編集
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(expense._id)}
+                              className="text-sm text-red-600 hover:text-red-900"
+                            >
+                              削除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+
+        {/* ページネーション */}
+        {(searchResult.hasMore || cursor) && (
+          <div className="mt-6 flex justify-center space-x-2">
+            {cursor && (
+              <button
+                onClick={() => setCursor(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                最初のページ
+              </button>
+            )}
+            {searchResult.hasMore && (
+              <button
+                onClick={() => setCursor(searchResult.nextCursor)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+              >
+                次のページ
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
