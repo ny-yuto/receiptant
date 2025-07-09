@@ -1,49 +1,105 @@
 import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
 
-// 収入カテゴリーの取得
-export const getCategories = query({
-  args: {},
+// 収入カテゴリ一覧を取得
+export const getIncomeCategories = query({
   handler: async (ctx) => {
-    return await ctx.db
-      .query("incomeCategories")
-      .order("asc")
-      .collect();
+    return await ctx.db.query("income_categories").order("asc").collect();
   },
 });
 
-// 初期カテゴリーの作成（初回セットアップ用）
-export const initializeCategories = mutation({
-  args: {},
+// カテゴリIDで収入カテゴリを取得
+export const getIncomeCategoryByCategoryId = query({
+  args: {
+    categoryId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("income_categories")
+      .withIndex("by_category_id", (q) => q.eq("categoryId", args.categoryId))
+      .first();
+  },
+});
+
+// 初期収入カテゴリを作成（管理者用）
+export const initializeIncomeCategories = mutation({
   handler: async (ctx) => {
-    // 既存のカテゴリーがあるか確認
-    const existing = await ctx.db.query("incomeCategories").first();
-    if (existing) {
-      return { message: "Categories already initialized" };
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
     }
 
-    // フリーランス・個人事業主向けの収入カテゴリ
+    const existingCategories = await ctx.db
+      .query("income_categories")
+      .collect();
+
+    if (existingCategories.length > 0) {
+      return { message: "Income categories already initialized" };
+    }
+
     const categories = [
-      { name: "業務委託料", description: "クライアントからの業務委託報酬", withholding: true, sortOrder: 1 },
-      { name: "コンサルティング料", description: "コンサルティング業務の報酬", withholding: true, sortOrder: 2 },
-      { name: "開発報酬", description: "システム開発・プログラミングの報酬", withholding: true, sortOrder: 3 },
-      { name: "デザイン料", description: "デザイン制作の報酬", withholding: true, sortOrder: 4 },
-      { name: "執筆料", description: "記事執筆・ライティングの報酬", withholding: true, sortOrder: 5 },
-      { name: "講演料", description: "セミナー・講演の報酬", withholding: true, sortOrder: 6 },
-      { name: "印税", description: "出版物の印税収入", withholding: true, sortOrder: 7 },
-      { name: "広告収入", description: "ブログ・YouTube等の広告収入", withholding: false, sortOrder: 8 },
-      { name: "アフィリエイト収入", description: "アフィリエイト報酬", withholding: false, sortOrder: 9 },
-      { name: "商品販売", description: "物品販売による収入", withholding: false, sortOrder: 10 },
-      { name: "サブスクリプション", description: "月額課金サービスの収入", withholding: false, sortOrder: 11 },
-      { name: "ロイヤリティ", description: "知的財産権のロイヤリティ収入", withholding: true, sortOrder: 12 },
-      { name: "助成金・補助金", description: "公的機関からの助成金・補助金", withholding: false, sortOrder: 13 },
-      { name: "その他収入", description: "上記以外の収入", withholding: false, sortOrder: 99 },
+      {
+        categoryId: "INC001",
+        name: "業務委託料",
+        description: "請負・委任契約の報酬",
+        withholding: true,
+        sortOrder: 1,
+      },
+      {
+        categoryId: "INC002",
+        name: "原稿料",
+        description: "執筆による報酬",
+        withholding: true,
+        sortOrder: 2,
+      },
+      {
+        categoryId: "INC003",
+        name: "講演料",
+        description: "セミナー・講演の報酬",
+        withholding: true,
+        sortOrder: 3,
+      },
+      {
+        categoryId: "INC004",
+        name: "印税",
+        description: "著作物による収入",
+        withholding: false,
+        sortOrder: 4,
+      },
+      {
+        categoryId: "INC005",
+        name: "広告収入",
+        description: "アフィリエイト・広告収入",
+        withholding: false,
+        sortOrder: 5,
+      },
+      {
+        categoryId: "INC006",
+        name: "販売収入",
+        description: "物品・サービスの販売",
+        withholding: false,
+        sortOrder: 6,
+      },
+      {
+        categoryId: "INC007",
+        name: "コンサルティング料",
+        description: "助言・指導による報酬",
+        withholding: true,
+        sortOrder: 7,
+      },
+      {
+        categoryId: "INC999",
+        name: "その他",
+        description: "上記に該当しない収入",
+        withholding: false,
+        sortOrder: 99,
+      },
     ];
 
-    // カテゴリーを一括挿入
     for (const category of categories) {
-      await ctx.db.insert("incomeCategories", category);
+      await ctx.db.insert("income_categories", category);
     }
 
-    return { message: "Income categories initialized successfully", count: categories.length };
+    return { message: "Income categories initialized successfully" };
   },
 });

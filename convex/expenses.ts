@@ -7,11 +7,11 @@ export const createExpense = mutation({
     receiptId: v.optional(v.id("receipts")),
     date: v.string(),
     amount: v.float64(),
-    category: v.string(),
+    categoryId: v.string(),
     vendor: v.string(),
     description: v.optional(v.string()),
     purpose: v.optional(v.string()),
-    paymentMethod: v.optional(v.string()),
+    paymentMethodId: v.optional(v.string()),
     taxRate: v.optional(v.float64()),
     invoiceNumber: v.optional(v.string()),
     invoiceDate: v.optional(v.string()),
@@ -46,11 +46,11 @@ export const createExpense = mutation({
       receiptId: args.receiptId,
       date: args.date,
       amount: args.amount,
-      category: args.category,
+      categoryId: args.categoryId,
       vendor: args.vendor,
       description: args.description,
       purpose: args.purpose,
-      paymentMethod: args.paymentMethod,
+      paymentMethodId: args.paymentMethodId,
       taxRate: args.taxRate,
       invoiceNumber: args.invoiceNumber,
       invoiceDate: args.invoiceDate,
@@ -99,7 +99,7 @@ export const getUserExpenses = query({
     if (args.status) {
       query = ctx.db
         .query("expenses")
-        .withIndex("by_status", (q) => 
+        .withIndex("by_status", (q) =>
           q.eq("userId", user._id).eq("status", args.status!)
         );
     } else {
@@ -108,9 +108,7 @@ export const getUserExpenses = query({
         .withIndex("by_user", (q) => q.eq("userId", user._id));
     }
 
-    const expenses = await query
-      .order("desc")
-      .take(args.limit || 50);
+    const expenses = await query.order("desc").take(args.limit || 50);
 
     // レシート情報も取得
     const expensesWithReceipts = await Promise.all(
@@ -145,11 +143,11 @@ export const getMonthlyTotal = query({
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const startDateStr = startOfMonth.toISOString().split("T")[0];
 
     const expenses = await ctx.db
       .query("expenses")
-      .withIndex("by_date", (q) => 
+      .withIndex("by_date", (q) =>
         q.eq("userId", user._id).gte("date", startDateStr)
       )
       .collect();
@@ -163,13 +161,13 @@ export const searchExpenses = query({
   args: {
     // 検索条件
     searchText: v.optional(v.string()),
-    category: v.optional(v.string()),
+    categoryId: v.optional(v.string()),
     status: v.optional(v.string()),
     dateFrom: v.optional(v.string()),
     dateTo: v.optional(v.string()),
     amountMin: v.optional(v.float64()),
     amountMax: v.optional(v.float64()),
-    paymentMethod: v.optional(v.string()),
+    paymentMethodId: v.optional(v.string()),
     projectCode: v.optional(v.string()),
     hasReceipt: v.optional(v.boolean()),
     isDeductible: v.optional(v.boolean()),
@@ -207,77 +205,83 @@ export const searchExpenses = query({
     // テキスト検索（vendor, description, purpose, invoiceNumberを対象）
     if (args.searchText) {
       const searchLower = args.searchText.toLowerCase();
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.vendor.toLowerCase().includes(searchLower) ||
-        (expense.description && expense.description.toLowerCase().includes(searchLower)) ||
-        (expense.purpose && expense.purpose.toLowerCase().includes(searchLower)) ||
-        (expense.invoiceNumber && expense.invoiceNumber.toLowerCase().includes(searchLower))
+      filteredExpenses = filteredExpenses.filter(
+        (expense) =>
+          expense.vendor.toLowerCase().includes(searchLower) ||
+          (expense.description &&
+            expense.description.toLowerCase().includes(searchLower)) ||
+          (expense.purpose &&
+            expense.purpose.toLowerCase().includes(searchLower)) ||
+          (expense.invoiceNumber &&
+            expense.invoiceNumber.toLowerCase().includes(searchLower))
       );
     }
 
     // カテゴリフィルタ
-    if (args.category) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.category === args.category
+    if (args.categoryId) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.categoryId === args.categoryId
       );
     }
 
     // ステータスフィルタ
     if (args.status) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.status === args.status
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.status === args.status
       );
     }
 
     // 日付範囲フィルタ
     if (args.dateFrom) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.date >= args.dateFrom!
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.date >= args.dateFrom!
       );
     }
     if (args.dateTo) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.date <= args.dateTo!
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.date <= args.dateTo!
       );
     }
 
     // 金額範囲フィルタ
     if (args.amountMin !== undefined) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.amount >= args.amountMin!
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.amount >= args.amountMin!
       );
     }
     if (args.amountMax !== undefined) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.amount <= args.amountMax!
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.amount <= args.amountMax!
       );
     }
 
     // 支払方法フィルタ
-    if (args.paymentMethod) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.paymentMethod === args.paymentMethod
+    if (args.paymentMethodId) {
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.paymentMethodId === args.paymentMethodId
       );
     }
 
     // プロジェクトコードフィルタ
     if (args.projectCode) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.projectCode === args.projectCode
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.projectCode === args.projectCode
       );
     }
 
     // レシート有無フィルタ
     if (args.hasReceipt !== undefined) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        args.hasReceipt ? expense.receiptId !== undefined : expense.receiptId === undefined
+      filteredExpenses = filteredExpenses.filter((expense) =>
+        args.hasReceipt
+          ? expense.receiptId !== undefined
+          : expense.receiptId === undefined
       );
     }
 
     // 控除対象フィルタ
     if (args.isDeductible !== undefined) {
-      filteredExpenses = filteredExpenses.filter(expense => 
-        expense.isDeductible === args.isDeductible
+      filteredExpenses = filteredExpenses.filter(
+        (expense) => expense.isDeductible === args.isDeductible
       );
     }
 
@@ -305,7 +309,10 @@ export const searchExpenses = query({
     // ページネーション
     const limit = args.limit || 20;
     const startIndex = args.cursor ? parseInt(args.cursor) : 0;
-    const paginatedExpenses = filteredExpenses.slice(startIndex, startIndex + limit);
+    const paginatedExpenses = filteredExpenses.slice(
+      startIndex,
+      startIndex + limit
+    );
     const hasMore = startIndex + limit < filteredExpenses.length;
     const nextCursor = hasMore ? String(startIndex + limit) : null;
 
@@ -356,32 +363,39 @@ export const getExpensesSummary = query({
 
     // 日付範囲フィルタ
     if (args.dateFrom) {
-      expenses = expenses.filter(expense => expense.date >= args.dateFrom!);
+      expenses = expenses.filter((expense) => expense.date >= args.dateFrom!);
     }
     if (args.dateTo) {
-      expenses = expenses.filter(expense => expense.date <= args.dateTo!);
+      expenses = expenses.filter((expense) => expense.date <= args.dateTo!);
     }
 
     // カテゴリ別集計
-    const categoryTotals = expenses.reduce((acc, expense) => {
-      if (!acc[expense.category]) {
-        acc[expense.category] = { count: 0, amount: 0 };
-      }
-      acc[expense.category].count += 1;
-      acc[expense.category].amount += expense.amount;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
+    const categoryTotals = expenses.reduce(
+      (acc, expense) => {
+        const categoryId = expense.categoryId;
+        if (!acc[categoryId]) {
+          acc[categoryId] = { count: 0, amount: 0 };
+        }
+        acc[categoryId].count += 1;
+        acc[categoryId].amount += expense.amount;
+        return acc;
+      },
+      {} as Record<string, { count: number; amount: number }>
+    );
 
     // 支払方法別集計
-    const paymentMethodTotals = expenses.reduce((acc, expense) => {
-      const method = expense.paymentMethod || "未設定";
-      if (!acc[method]) {
-        acc[method] = { count: 0, amount: 0 };
-      }
-      acc[method].count += 1;
-      acc[method].amount += expense.amount;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number }>);
+    const paymentMethodTotals = expenses.reduce(
+      (acc, expense) => {
+        const methodId = expense.paymentMethodId || "unset";
+        if (!acc[methodId]) {
+          acc[methodId] = { count: 0, amount: 0 };
+        }
+        acc[methodId].count += 1;
+        acc[methodId].amount += expense.amount;
+        return acc;
+      },
+      {} as Record<string, { count: number; amount: number }>
+    );
 
     return {
       totalAmount: expenses.reduce((sum, expense) => sum + expense.amount, 0),
@@ -389,7 +403,7 @@ export const getExpensesSummary = query({
       categoryTotals,
       paymentMethodTotals,
       deductibleAmount: expenses
-        .filter(expense => expense.isDeductible !== false)
+        .filter((expense) => expense.isDeductible !== false)
         .reduce((sum, expense) => sum + expense.amount, 0),
     };
   },
@@ -401,11 +415,11 @@ export const updateExpense = mutation({
     id: v.id("expenses"),
     date: v.optional(v.string()),
     amount: v.optional(v.float64()),
-    category: v.optional(v.string()),
+    categoryId: v.optional(v.string()),
     vendor: v.optional(v.string()),
     description: v.optional(v.string()),
     purpose: v.optional(v.string()),
-    paymentMethod: v.optional(v.string()),
+    paymentMethodId: v.optional(v.string()),
     taxRate: v.optional(v.float64()),
     invoiceNumber: v.optional(v.string()),
     invoiceDate: v.optional(v.string()),

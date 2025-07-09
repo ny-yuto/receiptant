@@ -32,11 +32,11 @@ export default defineSchema({
     receiptId: v.optional(v.id("receipts")),
     date: v.string(), // YYYY-MM-DD形式
     amount: v.float64(),
-    category: v.string(), // 経費カテゴリ（交通費、会議費、消耗品費など）
+    categoryId: v.string(), // 経費カテゴリID（expense_categoriesテーブル参照）
     vendor: v.string(), // 支払先
     description: v.optional(v.string()),
     purpose: v.optional(v.string()), // 目的（確定申告用）
-    paymentMethod: v.optional(v.string()), // 支払方法
+    paymentMethodId: v.optional(v.string()), // 支払方法ID（payment_methodsテーブル参照）
     taxRate: v.optional(v.float64()), // 消費税率
     // インボイス制度関連
     invoiceNumber: v.optional(v.string()), // 適格請求書発行事業者登録番号（T+13桁）
@@ -53,28 +53,40 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_date", ["userId", "date"])
-    .index("by_category", ["userId", "category"])
+    .index("by_category", ["userId", "categoryId"])
     .index("by_status", ["userId", "status"]),
 
   // カテゴリマスターテーブル（ユーザー共通）
-  expenseCategories: defineTable({
+  expense_categories: defineTable({
+    categoryId: v.string(), // 一意のカテゴリID（例: EXP001）
     name: v.string(),
     description: v.optional(v.string()),
     taxDeductible: v.boolean(), // 控除対象かどうか
     sortOrder: v.float64(),
   })
+    .index("by_category_id", ["categoryId"])
     .index("by_name", ["name"]),
+
+  // 支払方法マスター
+  payment_methods: defineTable({
+    methodId: v.string(), // 一意のID（例: PM001）
+    name: v.string(), // 表示名
+    type: v.string(), // 経費用(expense)、収入用(income)、両方(both)
+    sortOrder: v.float64(),
+  })
+    .index("by_method_id", ["methodId"])
+    .index("by_type", ["type"]),
 
   // 収入データテーブル
   incomes: defineTable({
     userId: v.id("users"),
     date: v.string(), // YYYY-MM-DD形式
     amount: v.float64(),
-    category: v.string(), // 収入カテゴリ（業務委託料、印税、講演料など）
+    categoryId: v.string(), // 収入カテゴリID（income_categoriesテーブル参照）
     client: v.string(), // クライアント名
     description: v.optional(v.string()),
     projectName: v.optional(v.string()), // プロジェクト名
-    paymentMethod: v.optional(v.string()), // 受取方法（振込、現金など）
+    paymentMethodId: v.optional(v.string()), // 受取方法ID（payment_methodsテーブル参照）
     // 源泉徴収関連
     withholding: v.optional(v.boolean()), // 源泉徴収ありかどうか
     withholdingAmount: v.optional(v.float64()), // 源泉徴収額
@@ -96,16 +108,18 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_date", ["userId", "date"])
-    .index("by_category", ["userId", "category"])
+    .index("by_category", ["userId", "categoryId"])
     .index("by_status", ["userId", "status"])
     .index("by_client", ["userId", "client"]),
 
   // 収入カテゴリマスターテーブル（ユーザー共通）
-  incomeCategories: defineTable({
+  income_categories: defineTable({
+    categoryId: v.string(), // 一意のカテゴリID（例: INC001）
     name: v.string(),
     description: v.optional(v.string()),
     withholding: v.boolean(), // 通常源泉徴収対象かどうか
     sortOrder: v.float64(),
   })
+    .index("by_category_id", ["categoryId"])
     .index("by_name", ["name"]),
 });

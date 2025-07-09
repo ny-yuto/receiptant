@@ -13,10 +13,11 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
-import type * as categories from "../categories.js";
+import type * as expenseCategories from "../expenseCategories.js";
 import type * as expenses from "../expenses.js";
 import type * as incomeCategories from "../incomeCategories.js";
 import type * as incomes from "../incomes.js";
+import type * as paymentMethods from "../paymentMethods.js";
 import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 
@@ -29,10 +30,11 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  categories: typeof categories;
+  expenseCategories: typeof expenseCategories;
   expenses: typeof expenses;
   incomeCategories: typeof incomeCategories;
   incomes: typeof incomes;
+  paymentMethods: typeof paymentMethods;
   storage: typeof storage;
   users: typeof users;
 }>;

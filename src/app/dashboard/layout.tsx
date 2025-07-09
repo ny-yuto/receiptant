@@ -97,9 +97,14 @@ export default function DashboardLayout({
               </button>
 
               {/* ロゴ */}
-              <Link href="/dashboard" className="flex items-center ml-4 md:ml-0">
+              <Link
+                href="/dashboard"
+                className="flex items-center ml-4 md:ml-0"
+              >
                 <span className="text-2xl mr-2">💴</span>
-                <h1 className="text-xl font-semibold text-gray-900">Receiptant</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Receiptant
+                </h1>
               </Link>
             </div>
 
@@ -140,7 +145,7 @@ export default function DashboardLayout({
                   経費追加
                 </Link>
               </div>
-              
+
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>
@@ -149,24 +154,39 @@ export default function DashboardLayout({
 
       {/* モバイルメニュー */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-30 bg-gray-600 bg-opacity-75" onClick={() => setIsMobileMenuOpen(false)}>
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-gray-600 bg-opacity-75"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
           <div
             className="fixed inset-y-0 left-0 max-w-xs w-full bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-lg font-semibold text-gray-900">メニュー</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  メニュー
+                </h2>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
-              
+
               <nav className="space-y-1">
                 {menuItems.map((item) => (
                   <Link
@@ -183,7 +203,9 @@ export default function DashboardLayout({
                     <div>
                       <div className="font-medium">{item.name}</div>
                       {item.description && (
-                        <div className="text-sm text-gray-500">{item.description}</div>
+                        <div className="text-sm text-gray-500">
+                          {item.description}
+                        </div>
                       )}
                     </div>
                   </Link>
@@ -218,7 +240,9 @@ export default function DashboardLayout({
 
             {/* サイドバー下部の統計情報 */}
             <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">クイック統計</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                クイック統計
+              </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">今月の収支</span>
@@ -234,9 +258,7 @@ export default function DashboardLayout({
         </aside>
 
         {/* メインコンテンツ */}
-        <main className="flex-1 min-h-[calc(100vh-4rem)]">
-          {children}
-        </main>
+        <main className="flex-1 min-h-[calc(100vh-4rem)]">{children}</main>
       </div>
     </div>
   );

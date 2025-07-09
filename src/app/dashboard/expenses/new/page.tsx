@@ -12,7 +12,9 @@ export default function NewReceipt() {
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveReceipt = useMutation(api.storage.saveReceipt);
   const createExpense = useMutation(api.expenses.createExpense);
-  const categories = useQuery(api.categories.getCategories) || [];
+  const categories = useQuery(api.expenseCategories.getExpenseCategories) || [];
+  const paymentMethods =
+    useQuery(api.paymentMethods.getPaymentMethods, { type: "expense" }) || [];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -25,11 +27,11 @@ export default function NewReceipt() {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     amount: "",
-    category: "",
+    categoryId: "",
     vendor: "",
     description: "",
     purpose: "",
-    paymentMethod: "現金",
+    paymentMethodId: "PM001",
     taxRate: "10",
     invoiceNumber: "",
     invoiceDate: "",
@@ -77,9 +79,9 @@ export default function NewReceipt() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && file.type.startsWith("image/")) {
       handleImageChange(file);
     }
   };
@@ -133,11 +135,11 @@ export default function NewReceipt() {
         receiptId: receiptId || undefined,
         date: formData.date,
         amount: parseFloat(formData.amount),
-        category: formData.category,
+        categoryId: formData.categoryId,
         vendor: formData.vendor,
         description: formData.description || undefined,
         purpose: formData.purpose || undefined,
-        paymentMethod: formData.paymentMethod || undefined,
+        paymentMethodId: formData.paymentMethodId || undefined,
         taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
         invoiceNumber: formData.invoiceNumber || undefined,
         invoiceDate: formData.invoiceDate || undefined,
@@ -153,7 +155,9 @@ export default function NewReceipt() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     setFormData({
       ...formData,
@@ -163,12 +167,12 @@ export default function NewReceipt() {
 
   const calculateTaxDetails = () => {
     if (!formData.amount || !formData.taxRate) return null;
-    
+
     const amount = parseFloat(formData.amount);
     const taxRate = parseFloat(formData.taxRate);
-    const taxAmount = Math.floor(amount * taxRate / (100 + taxRate));
+    const taxAmount = Math.floor((amount * taxRate) / (100 + taxRate));
     const beforeTax = amount - taxAmount;
-    
+
     return {
       beforeTax,
       taxAmount,
@@ -236,8 +240,18 @@ export default function NewReceipt() {
                           }}
                           className="absolute top-6 right-6 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 shadow-lg transition-all"
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -309,13 +323,18 @@ export default function NewReceipt() {
               <div className="space-y-6">
                 {/* 基本情報 */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">基本情報</h3>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    基本情報
+                  </h3>
+
                   <div className="space-y-4">
                     {/* 日付と金額 */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="date"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           日付 <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -330,7 +349,10 @@ export default function NewReceipt() {
                       </div>
 
                       <div>
-                        <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="amount"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           金額（税込） <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -354,20 +376,23 @@ export default function NewReceipt() {
                     {/* カテゴリと支払方法 */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="categoryId"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           カテゴリ <span className="text-red-500">*</span>
                         </label>
                         <select
-                          id="category"
-                          name="category"
+                          id="categoryId"
+                          name="categoryId"
                           required
-                          value={formData.category}
+                          value={formData.categoryId}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
                           <option value="">選択してください</option>
                           {categories.map((cat) => (
-                            <option key={cat._id} value={cat.name}>
+                            <option key={cat._id} value={cat.categoryId}>
                               {cat.name}
                             </option>
                           ))}
@@ -375,28 +400,40 @@ export default function NewReceipt() {
                       </div>
 
                       <div>
-                        <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="paymentMethodId"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           支払方法
                         </label>
                         <select
-                          id="paymentMethod"
-                          name="paymentMethod"
-                          value={formData.paymentMethod}
+                          id="paymentMethodId"
+                          name="paymentMethodId"
+                          value={formData.paymentMethodId}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
-                          <option value="現金">現金</option>
-                          <option value="クレジットカード">クレジットカード</option>
-                          <option value="銀行振込">銀行振込</option>
-                          <option value="電子マネー">電子マネー</option>
-                          <option value="その他">その他</option>
+                          {paymentMethods
+                            .filter(
+                              (method) =>
+                                method.type === "both" ||
+                                method.type === "expense"
+                            )
+                            .map((method) => (
+                              <option key={method._id} value={method.methodId}>
+                                {method.name}
+                              </option>
+                            ))}
                         </select>
                       </div>
                     </div>
 
                     {/* 支払先 */}
                     <div>
-                      <label htmlFor="vendor" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="vendor"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         支払先 <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -419,7 +456,10 @@ export default function NewReceipt() {
 
                     {/* 目的 */}
                     <div>
-                      <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="purpose"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         利用目的（確定申告用）
                       </label>
                       <input
@@ -435,7 +475,10 @@ export default function NewReceipt() {
 
                     {/* 備考 */}
                     <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="description"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         備考
                       </label>
                       <textarea
@@ -453,12 +496,17 @@ export default function NewReceipt() {
 
                 {/* 税務情報 */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">税務情報</h3>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    税務情報
+                  </h3>
+
                   <div className="space-y-4">
                     {/* 消費税率 */}
                     <div>
-                      <label htmlFor="taxRate" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="taxRate"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         消費税率
                       </label>
                       <select
@@ -480,11 +528,15 @@ export default function NewReceipt() {
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">税抜金額:</span>
-                            <span>¥{taxDetails.beforeTax.toLocaleString()}</span>
+                            <span>
+                              ¥{taxDetails.beforeTax.toLocaleString()}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">消費税:</span>
-                            <span>¥{taxDetails.taxAmount.toLocaleString()}</span>
+                            <span>
+                              ¥{taxDetails.taxAmount.toLocaleString()}
+                            </span>
                           </div>
                           <div className="flex justify-between font-medium pt-1 border-t">
                             <span>合計:</span>
@@ -497,7 +549,10 @@ export default function NewReceipt() {
                     {/* インボイス情報 */}
                     <div className="space-y-3">
                       <div>
-                        <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="invoiceNumber"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           適格請求書発行事業者登録番号
                         </label>
                         <input
@@ -511,11 +566,16 @@ export default function NewReceipt() {
                           pattern="T\d{13}"
                           maxLength={14}
                         />
-                        <p className="mt-1 text-xs text-gray-500">T + 13桁の数字</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          T + 13桁の数字
+                        </p>
                       </div>
 
                       <div>
-                        <label htmlFor="invoiceDate" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="invoiceDate"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
                           請求書日付
                         </label>
                         <input
@@ -536,10 +596,18 @@ export default function NewReceipt() {
                         id="isDeductible"
                         name="isDeductible"
                         checked={formData.isDeductible}
-                        onChange={(e) => setFormData({ ...formData, isDeductible: e.target.checked })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isDeductible: e.target.checked,
+                          })
+                        }
                         className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="isDeductible" className="ml-2 block text-sm text-gray-900">
+                      <label
+                        htmlFor="isDeductible"
+                        className="ml-2 block text-sm text-gray-900"
+                      >
                         控除対象経費として計上する
                       </label>
                     </div>
@@ -548,7 +616,10 @@ export default function NewReceipt() {
 
                 {/* プロジェクト管理 */}
                 <div>
-                  <label htmlFor="projectCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="projectCode"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     プロジェクトコード
                   </label>
                   <input
@@ -560,7 +631,9 @@ export default function NewReceipt() {
                     className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     placeholder="例：PRJ-2024-001"
                   />
-                  <p className="mt-1 text-xs text-gray-500">案件管理用のコード</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    案件管理用のコード
+                  </p>
                 </div>
               </div>
             </div>

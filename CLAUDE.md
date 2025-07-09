@@ -57,6 +57,7 @@ npx convex dev
 ### 主要な型定義
 
 Convex のスキーマ (`convex/schema.ts`) が全体の型安全性を担保。以下の主要テーブル：
+
 - `users` - ユーザー情報
 - `expenses` - 経費データ（金額、カテゴリ、税情報など）
 - `receiptImages` - アップロードされたレシート画像
@@ -79,6 +80,7 @@ Convex のスキーマ (`convex/schema.ts`) が全体の型安全性を担保。
 ## よく使うパターン
 
 ### Convex クエリの使用
+
 ```typescript
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -87,10 +89,13 @@ const data = useQuery(api.expenses.list);
 ```
 
 ### Convex ミューテーションの使用
+
 ```typescript
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 const createExpense = useMutation(api.expenses.create);
-await createExpense({ /* データ */ });
+await createExpense({
+  /* データ */
+});
 ```

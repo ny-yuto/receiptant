@@ -9,17 +9,19 @@ import Link from "next/link";
 export default function NewIncome() {
   const router = useRouter();
   const createIncome = useMutation(api.incomes.createIncome);
-  const categories = useQuery(api.incomeCategories.getCategories) || [];
+  const categories = useQuery(api.incomeCategories.getIncomeCategories) || [];
+  const paymentMethods =
+    useQuery(api.paymentMethods.getPaymentMethods, { type: "income" }) || [];
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     amount: "",
-    category: "",
+    categoryId: "",
     client: "",
     description: "",
     projectName: "",
-    paymentMethod: "銀行振込",
+    paymentMethodId: "PM004",
     withholding: false,
     withholdingAmount: "",
     withholdingRate: "10.21",
@@ -44,14 +46,19 @@ export default function NewIncome() {
       await createIncome({
         date: formData.date,
         amount: parseFloat(formData.amount),
-        category: formData.category,
+        categoryId: formData.categoryId,
         client: formData.client,
         description: formData.description || undefined,
         projectName: formData.projectName || undefined,
-        paymentMethod: formData.paymentMethod || undefined,
+        paymentMethodId: formData.paymentMethodId || undefined,
         withholding: formData.withholding,
-        withholdingAmount: formData.withholdingAmount ? parseFloat(formData.withholdingAmount) : undefined,
-        withholdingRate: formData.withholding && formData.withholdingRate ? parseFloat(formData.withholdingRate) : undefined,
+        withholdingAmount: formData.withholdingAmount
+          ? parseFloat(formData.withholdingAmount)
+          : undefined,
+        withholdingRate:
+          formData.withholding && formData.withholdingRate
+            ? parseFloat(formData.withholdingRate)
+            : undefined,
         invoiceNumber: formData.invoiceNumber || undefined,
         invoiceIssued: formData.invoiceIssued,
         invoiceDate: formData.invoiceDate || undefined,
@@ -68,7 +75,9 @@ export default function NewIncome() {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
@@ -86,7 +95,12 @@ export default function NewIncome() {
   };
 
   const calculateWithholding = () => {
-    if (formData.amount && formData.withholding && formData.withholdingRate && !formData.withholdingAmount) {
+    if (
+      formData.amount &&
+      formData.withholding &&
+      formData.withholdingRate &&
+      !formData.withholdingAmount
+    ) {
       const amount = parseFloat(formData.amount);
       const rate = parseFloat(formData.withholdingRate);
       const withholdingAmount = Math.floor(amount * (rate / 100));
@@ -112,7 +126,12 @@ export default function NewIncome() {
   const isStepValid = (step: number) => {
     switch (step) {
       case 1:
-        return formData.date && formData.amount && formData.category && formData.client;
+        return (
+          formData.date &&
+          formData.amount &&
+          formData.categoryId &&
+          formData.client
+        );
       case 2:
         return true;
       case 3:
@@ -154,16 +173,22 @@ export default function NewIncome() {
                       <span className="text-lg">{step.icon}</span>
                     </div>
                     <div className="flex-1 ml-3">
-                      <p className={`text-sm font-medium ${
-                        currentStep >= step.id ? "text-gray-900" : "text-gray-500"
-                      }`}>
+                      <p
+                        className={`text-sm font-medium ${
+                          currentStep >= step.id
+                            ? "text-gray-900"
+                            : "text-gray-500"
+                        }`}
+                      >
                         {step.name}
                       </p>
                     </div>
                     {index < steps.length - 1 && (
-                      <div className={`h-0.5 flex-1 mx-2 transition-all ${
-                        currentStep > step.id ? "bg-blue-600" : "bg-gray-200"
-                      }`} />
+                      <div
+                        className={`h-0.5 flex-1 mx-2 transition-all ${
+                          currentStep > step.id ? "bg-blue-600" : "bg-gray-200"
+                        }`}
+                      />
                     )}
                   </div>
                 </div>
@@ -171,14 +196,22 @@ export default function NewIncome() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-6 pb-6">
+          <form
+            onSubmit={
+              currentStep === 3 ? handleSubmit : (e) => e.preventDefault()
+            }
+            className="px-6 pb-6"
+          >
             {/* ステップ1: 基本情報 */}
             {currentStep === 1 && (
               <div className="space-y-6 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 日付 */}
                   <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="date"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       発生日 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -194,7 +227,10 @@ export default function NewIncome() {
 
                   {/* 金額 */}
                   <div>
-                    <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="amount"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       金額（税込） <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -218,20 +254,23 @@ export default function NewIncome() {
 
                 {/* カテゴリ */}
                 <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="categoryId"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     カテゴリ <span className="text-red-500">*</span>
                   </label>
                   <select
-                    id="category"
-                    name="category"
+                    id="categoryId"
+                    name="categoryId"
                     required
-                    value={formData.category}
+                    value={formData.categoryId}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="">選択してください</option>
                     {categories.map((cat) => (
-                      <option key={cat._id} value={cat.name}>
+                      <option key={cat._id} value={cat.categoryId}>
                         {cat.name}
                       </option>
                     ))}
@@ -240,7 +279,10 @@ export default function NewIncome() {
 
                 {/* クライアント */}
                 <div>
-                  <label htmlFor="client" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="client"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     クライアント名 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -258,7 +300,10 @@ export default function NewIncome() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* プロジェクト名 */}
                   <div>
-                    <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="projectName"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       プロジェクト名
                     </label>
                     <input
@@ -274,27 +319,39 @@ export default function NewIncome() {
 
                   {/* 受取方法 */}
                   <div>
-                    <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="paymentMethodId"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       受取方法
                     </label>
                     <select
-                      id="paymentMethod"
-                      name="paymentMethod"
-                      value={formData.paymentMethod}
+                      id="paymentMethodId"
+                      name="paymentMethodId"
+                      value={formData.paymentMethodId}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     >
-                      <option value="銀行振込">銀行振込</option>
-                      <option value="現金">現金</option>
-                      <option value="小切手">小切手</option>
-                      <option value="その他">その他</option>
+                      {paymentMethods
+                        .filter(
+                          (method) =>
+                            method.type === "both" || method.type === "income"
+                        )
+                        .map((method) => (
+                          <option key={method._id} value={method.methodId}>
+                            {method.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
 
                 {/* 備考 */}
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     備考
                   </label>
                   <textarea
@@ -315,8 +372,10 @@ export default function NewIncome() {
               <div className="space-y-6 animate-fade-in">
                 {/* 源泉徴収 */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">源泉徴収</h3>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    源泉徴収
+                  </h3>
+
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <input
@@ -327,7 +386,10 @@ export default function NewIncome() {
                         onChange={handleInputChange}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="withholding" className="ml-2 block text-sm text-gray-900">
+                      <label
+                        htmlFor="withholding"
+                        className="ml-2 block text-sm text-gray-900"
+                      >
                         源泉徴収あり
                       </label>
                     </div>
@@ -335,7 +397,10 @@ export default function NewIncome() {
                     {formData.withholding && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
-                          <label htmlFor="withholdingRate" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="withholdingRate"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             源泉徴収率（%）
                           </label>
                           <input
@@ -349,11 +414,16 @@ export default function NewIncome() {
                             className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="10.21"
                           />
-                          <p className="mt-1 text-xs text-gray-500">通常は10.21%（復興特別所得税含む）</p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            通常は10.21%（復興特別所得税含む）
+                          </p>
                         </div>
 
                         <div>
-                          <label htmlFor="withholdingAmount" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="withholdingAmount"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             源泉徴収額
                           </label>
                           <div className="relative">
@@ -372,7 +442,11 @@ export default function NewIncome() {
                           </div>
                           {formData.amount && formData.withholdingAmount && (
                             <p className="mt-1 text-xs text-gray-500">
-                              手取り額: ¥{(parseFloat(formData.amount) - parseFloat(formData.withholdingAmount)).toLocaleString()}
+                              手取り額: ¥
+                              {(
+                                parseFloat(formData.amount) -
+                                parseFloat(formData.withholdingAmount)
+                              ).toLocaleString()}
                             </p>
                           )}
                         </div>
@@ -383,8 +457,10 @@ export default function NewIncome() {
 
                 {/* インボイス制度 */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">インボイス制度</h3>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    インボイス制度
+                  </h3>
+
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <input
@@ -395,7 +471,10 @@ export default function NewIncome() {
                         onChange={handleInputChange}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <label htmlFor="invoiceIssued" className="ml-2 block text-sm text-gray-900">
+                      <label
+                        htmlFor="invoiceIssued"
+                        className="ml-2 block text-sm text-gray-900"
+                      >
                         適格請求書を発行した
                       </label>
                     </div>
@@ -403,7 +482,10 @@ export default function NewIncome() {
                     {formData.invoiceIssued && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
-                          <label htmlFor="invoiceNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="invoiceNumber"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             登録番号（自身の番号）
                           </label>
                           <input
@@ -417,11 +499,16 @@ export default function NewIncome() {
                             pattern="T\d{13}"
                             maxLength={14}
                           />
-                          <p className="mt-1 text-xs text-gray-500">T + 13桁の数字</p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            T + 13桁の数字
+                          </p>
                         </div>
 
                         <div>
-                          <label htmlFor="invoiceDate" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label
+                            htmlFor="invoiceDate"
+                            className="block text-sm font-medium text-gray-700 mb-2"
+                          >
                             請求書発行日
                           </label>
                           <input
@@ -440,7 +527,10 @@ export default function NewIncome() {
 
                 {/* 消費税率 */}
                 <div>
-                  <label htmlFor="taxRate" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="taxRate"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     消費税率
                   </label>
                   <select
@@ -462,11 +552,16 @@ export default function NewIncome() {
             {currentStep === 3 && (
               <div className="space-y-6 animate-fade-in">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">その他の管理項目</h3>
-                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    その他の管理項目
+                  </h3>
+
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="projectCode" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="projectCode"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         プロジェクトコード
                       </label>
                       <input
@@ -478,11 +573,16 @@ export default function NewIncome() {
                         className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="例：PRJ-2024-001"
                       />
-                      <p className="mt-1 text-xs text-gray-500">案件管理用のコード</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        案件管理用のコード
+                      </p>
                     </div>
 
                     <div>
-                      <label htmlFor="receivedDate" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="receivedDate"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         入金日
                       </label>
                       <input
@@ -493,14 +593,18 @@ export default function NewIncome() {
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
-                      <p className="mt-1 text-xs text-gray-500">実際に入金された日付</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        実際に入金された日付
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* サマリー */}
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">入力内容の確認</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    入力内容の確認
+                  </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">発生日:</span>
@@ -508,7 +612,12 @@ export default function NewIncome() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">金額:</span>
-                      <span className="font-medium">¥{formData.amount ? parseInt(formData.amount).toLocaleString() : 0}</span>
+                      <span className="font-medium">
+                        ¥
+                        {formData.amount
+                          ? parseInt(formData.amount).toLocaleString()
+                          : 0}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">クライアント:</span>
@@ -518,7 +627,11 @@ export default function NewIncome() {
                       <div className="flex justify-between">
                         <span className="text-gray-600">手取り額:</span>
                         <span className="font-medium text-green-600">
-                          ¥{(parseFloat(formData.amount) - parseFloat(formData.withholdingAmount)).toLocaleString()}
+                          ¥
+                          {(
+                            parseFloat(formData.amount) -
+                            parseFloat(formData.withholdingAmount)
+                          ).toLocaleString()}
                         </span>
                       </div>
                     )}
@@ -548,8 +661,8 @@ export default function NewIncome() {
                 >
                   キャンセル
                 </Link>
-                
-                {currentStep < 3 ? (
+
+                {currentStep < 3 && (
                   <button
                     type="button"
                     onClick={nextStep}
@@ -562,7 +675,8 @@ export default function NewIncome() {
                   >
                     次へ →
                   </button>
-                ) : (
+                )}
+                {currentStep >= 3 && (
                   <button
                     type="submit"
                     className="px-6 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all"

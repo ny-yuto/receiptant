@@ -6,11 +6,11 @@ export const createIncome = mutation({
   args: {
     date: v.string(),
     amount: v.float64(),
-    category: v.string(),
+    categoryId: v.string(),
     client: v.string(),
     description: v.optional(v.string()),
     projectName: v.optional(v.string()),
-    paymentMethod: v.optional(v.string()),
+    paymentMethodId: v.optional(v.string()),
     withholding: v.optional(v.boolean()),
     withholdingAmount: v.optional(v.float64()),
     withholdingRate: v.optional(v.float64()),
@@ -54,11 +54,11 @@ export const createIncome = mutation({
       userId: user._id,
       date: args.date,
       amount: args.amount,
-      category: args.category,
+      categoryId: args.categoryId,
       client: args.client,
       description: args.description,
       projectName: args.projectName,
-      paymentMethod: args.paymentMethod,
+      paymentMethodId: args.paymentMethodId,
       withholding: args.withholding,
       withholdingAmount,
       withholdingRate: args.withholdingRate,
@@ -104,7 +104,7 @@ export const getUserIncomes = query({
     if (args.status) {
       query = ctx.db
         .query("incomes")
-        .withIndex("by_status", (q) => 
+        .withIndex("by_status", (q) =>
           q.eq("userId", user._id).eq("status", args.status!)
         );
     } else {
@@ -113,9 +113,7 @@ export const getUserIncomes = query({
         .withIndex("by_user", (q) => q.eq("userId", user._id));
     }
 
-    const incomes = await query
-      .order("desc")
-      .take(args.limit || 50);
+    const incomes = await query.order("desc").take(args.limit || 50);
 
     return incomes;
   },
@@ -140,18 +138,18 @@ export const getMonthlyTotal = query({
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startDateStr = startOfMonth.toISOString().split('T')[0];
+    const startDateStr = startOfMonth.toISOString().split("T")[0];
 
     const incomes = await ctx.db
       .query("incomes")
-      .withIndex("by_date", (q) => 
+      .withIndex("by_date", (q) =>
         q.eq("userId", user._id).gte("date", startDateStr)
       )
       .collect();
 
     const total = incomes.reduce((sum, income) => sum + income.amount, 0);
     const withholdingTotal = incomes.reduce(
-      (sum, income) => sum + (income.withholdingAmount || 0), 
+      (sum, income) => sum + (income.withholdingAmount || 0),
       0
     );
 
@@ -168,7 +166,7 @@ export const searchIncomes = query({
   args: {
     // 検索条件
     searchText: v.optional(v.string()),
-    category: v.optional(v.string()),
+    categoryId: v.optional(v.string()),
     status: v.optional(v.string()),
     dateFrom: v.optional(v.string()),
     dateTo: v.optional(v.string()),
@@ -212,77 +210,81 @@ export const searchIncomes = query({
     // テキスト検索
     if (args.searchText) {
       const searchLower = args.searchText.toLowerCase();
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.client.toLowerCase().includes(searchLower) ||
-        (income.description && income.description.toLowerCase().includes(searchLower)) ||
-        (income.projectName && income.projectName.toLowerCase().includes(searchLower)) ||
-        (income.invoiceNumber && income.invoiceNumber.toLowerCase().includes(searchLower))
+      filteredIncomes = filteredIncomes.filter(
+        (income) =>
+          income.client.toLowerCase().includes(searchLower) ||
+          (income.description &&
+            income.description.toLowerCase().includes(searchLower)) ||
+          (income.projectName &&
+            income.projectName.toLowerCase().includes(searchLower)) ||
+          (income.invoiceNumber &&
+            income.invoiceNumber.toLowerCase().includes(searchLower))
       );
     }
 
     // カテゴリフィルタ
-    if (args.category) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.category === args.category
+    if (args.categoryId) {
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.categoryId === args.categoryId
       );
     }
 
     // ステータスフィルタ
     if (args.status) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.status === args.status
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.status === args.status
       );
     }
 
     // 日付範囲フィルタ
     if (args.dateFrom) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.date >= args.dateFrom!
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.date >= args.dateFrom!
       );
     }
     if (args.dateTo) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.date <= args.dateTo!
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.date <= args.dateTo!
       );
     }
 
     // 金額範囲フィルタ
     if (args.amountMin !== undefined) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.amount >= args.amountMin!
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.amount >= args.amountMin!
       );
     }
     if (args.amountMax !== undefined) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.amount <= args.amountMax!
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.amount <= args.amountMax!
       );
     }
 
     // クライアントフィルタ
     if (args.client) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.client === args.client
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.client === args.client
       );
     }
 
     // プロジェクトコードフィルタ
     if (args.projectCode) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.projectCode === args.projectCode
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.projectCode === args.projectCode
       );
     }
 
     // 源泉徴収フィルタ
     if (args.withholding !== undefined) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.withholding === args.withholding
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.withholding === args.withholding
       );
     }
 
     // インボイス発行フィルタ
     if (args.invoiceIssued !== undefined) {
-      filteredIncomes = filteredIncomes.filter(income => 
-        income.invoiceIssued === args.invoiceIssued
+      filteredIncomes = filteredIncomes.filter(
+        (income) => income.invoiceIssued === args.invoiceIssued
       );
     }
 
@@ -310,7 +312,10 @@ export const searchIncomes = query({
     // ページネーション
     const limit = args.limit || 20;
     const startIndex = args.cursor ? parseInt(args.cursor) : 0;
-    const paginatedIncomes = filteredIncomes.slice(startIndex, startIndex + limit);
+    const paginatedIncomes = filteredIncomes.slice(
+      startIndex,
+      startIndex + limit
+    );
     const hasMore = startIndex + limit < filteredIncomes.length;
     const nextCursor = hasMore ? String(startIndex + limit) : null;
 
@@ -351,37 +356,54 @@ export const getIncomesSummary = query({
 
     // 日付範囲フィルタ
     if (args.dateFrom) {
-      incomes = incomes.filter(income => income.date >= args.dateFrom!);
+      incomes = incomes.filter((income) => income.date >= args.dateFrom!);
     }
     if (args.dateTo) {
-      incomes = incomes.filter(income => income.date <= args.dateTo!);
+      incomes = incomes.filter((income) => income.date <= args.dateTo!);
     }
 
     // カテゴリ別集計
-    const categoryTotals = incomes.reduce((acc, income) => {
-      if (!acc[income.category]) {
-        acc[income.category] = { count: 0, amount: 0, withholdingAmount: 0 };
-      }
-      acc[income.category].count += 1;
-      acc[income.category].amount += income.amount;
-      acc[income.category].withholdingAmount += income.withholdingAmount || 0;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number; withholdingAmount: number }>);
+    const categoryTotals = incomes.reduce(
+      (acc, income) => {
+        if (!acc[income.categoryId]) {
+          acc[income.categoryId] = {
+            count: 0,
+            amount: 0,
+            withholdingAmount: 0,
+          };
+        }
+        acc[income.categoryId].count += 1;
+        acc[income.categoryId].amount += income.amount;
+        acc[income.categoryId].withholdingAmount +=
+          income.withholdingAmount || 0;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { count: number; amount: number; withholdingAmount: number }
+      >
+    );
 
     // クライアント別集計
-    const clientTotals = incomes.reduce((acc, income) => {
-      if (!acc[income.client]) {
-        acc[income.client] = { count: 0, amount: 0, withholdingAmount: 0 };
-      }
-      acc[income.client].count += 1;
-      acc[income.client].amount += income.amount;
-      acc[income.client].withholdingAmount += income.withholdingAmount || 0;
-      return acc;
-    }, {} as Record<string, { count: number; amount: number; withholdingAmount: number }>);
+    const clientTotals = incomes.reduce(
+      (acc, income) => {
+        if (!acc[income.client]) {
+          acc[income.client] = { count: 0, amount: 0, withholdingAmount: 0 };
+        }
+        acc[income.client].count += 1;
+        acc[income.client].amount += income.amount;
+        acc[income.client].withholdingAmount += income.withholdingAmount || 0;
+        return acc;
+      },
+      {} as Record<
+        string,
+        { count: number; amount: number; withholdingAmount: number }
+      >
+    );
 
     const totalAmount = incomes.reduce((sum, income) => sum + income.amount, 0);
     const totalWithholdingAmount = incomes.reduce(
-      (sum, income) => sum + (income.withholdingAmount || 0), 
+      (sum, income) => sum + (income.withholdingAmount || 0),
       0
     );
 
@@ -402,11 +424,11 @@ export const updateIncome = mutation({
     id: v.id("incomes"),
     date: v.optional(v.string()),
     amount: v.optional(v.float64()),
-    category: v.optional(v.string()),
+    categoryId: v.optional(v.string()),
     client: v.optional(v.string()),
     description: v.optional(v.string()),
     projectName: v.optional(v.string()),
-    paymentMethod: v.optional(v.string()),
+    paymentMethodId: v.optional(v.string()),
     withholding: v.optional(v.boolean()),
     withholdingAmount: v.optional(v.float64()),
     withholdingRate: v.optional(v.float64()),
@@ -455,9 +477,14 @@ export const updateIncome = mutation({
 
     // 源泉徴収額再計算
     let withholdingAmount = updateData.withholdingAmount;
-    if (updateData.withholding !== undefined || updateData.withholdingRate !== undefined || updateData.amount !== undefined) {
+    if (
+      updateData.withholding !== undefined ||
+      updateData.withholdingRate !== undefined ||
+      updateData.amount !== undefined
+    ) {
       const withholding = updateData.withholding ?? income.withholding;
-      const withholdingRate = updateData.withholdingRate ?? income.withholdingRate;
+      const withholdingRate =
+        updateData.withholdingRate ?? income.withholdingRate;
       const amount = updateData.amount ?? income.amount;
       if (withholding && !withholdingAmount && withholdingRate) {
         withholdingAmount = amount * (withholdingRate / 100);
@@ -538,55 +565,71 @@ export const getBalanceSummary = query({
 
     // 日付範囲フィルタ
     if (args.dateFrom) {
-      incomes = incomes.filter(income => income.date >= args.dateFrom!);
-      expenses = expenses.filter(expense => expense.date >= args.dateFrom!);
+      incomes = incomes.filter((income) => income.date >= args.dateFrom!);
+      expenses = expenses.filter((expense) => expense.date >= args.dateFrom!);
     }
     if (args.dateTo) {
-      incomes = incomes.filter(income => income.date <= args.dateTo!);
-      expenses = expenses.filter(expense => expense.date <= args.dateTo!);
+      incomes = incomes.filter((income) => income.date <= args.dateTo!);
+      expenses = expenses.filter((expense) => expense.date <= args.dateTo!);
     }
 
     // 集計
     const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
     const totalWithholding = incomes.reduce(
-      (sum, income) => sum + (income.withholdingAmount || 0), 
+      (sum, income) => sum + (income.withholdingAmount || 0),
       0
     );
     const netIncome = totalIncome - totalWithholding;
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalExpenses = expenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
     const balance = netIncome - totalExpenses;
 
     // 月別集計
-    const monthlyData: Record<string, {
-      income: number;
-      withholding: number;
-      expenses: number;
-      balance: number;
-    }> = {};
+    const monthlyData: Record<
+      string,
+      {
+        income: number;
+        withholding: number;
+        expenses: number;
+        balance: number;
+      }
+    > = {};
 
     // 収入の月別集計
-    incomes.forEach(income => {
+    incomes.forEach((income) => {
       const month = income.date.substring(0, 7); // YYYY-MM
       if (!monthlyData[month]) {
-        monthlyData[month] = { income: 0, withholding: 0, expenses: 0, balance: 0 };
+        monthlyData[month] = {
+          income: 0,
+          withholding: 0,
+          expenses: 0,
+          balance: 0,
+        };
       }
       monthlyData[month].income += income.amount;
       monthlyData[month].withholding += income.withholdingAmount || 0;
     });
 
     // 経費の月別集計
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const month = expense.date.substring(0, 7); // YYYY-MM
       if (!monthlyData[month]) {
-        monthlyData[month] = { income: 0, withholding: 0, expenses: 0, balance: 0 };
+        monthlyData[month] = {
+          income: 0,
+          withholding: 0,
+          expenses: 0,
+          balance: 0,
+        };
       }
       monthlyData[month].expenses += expense.amount;
     });
 
     // 月別収支計算
-    Object.keys(monthlyData).forEach(month => {
+    Object.keys(monthlyData).forEach((month) => {
       const data = monthlyData[month];
-      data.balance = (data.income - data.withholding) - data.expenses;
+      data.balance = data.income - data.withholding - data.expenses;
     });
 
     return {
