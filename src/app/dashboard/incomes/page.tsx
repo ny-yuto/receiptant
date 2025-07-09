@@ -6,8 +6,8 @@ import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-export default function ExpensesList() {
-  const categories = useQuery(api.categories.getCategories) || [];
+export default function IncomesList() {
+  const categories = useQuery(api.incomeCategories.getCategories) || [];
   
   // フィルター状態
   const [filters, setFilters] = useState({
@@ -18,9 +18,9 @@ export default function ExpensesList() {
     dateTo: "",
     amountMin: "",
     amountMax: "",
-    paymentMethod: "",
-    hasReceipt: "",
-    isDeductible: "",
+    client: "",
+    withholding: "",
+    invoiceIssued: "",
     sortBy: "date",
     sortOrder: "desc",
   });
@@ -29,7 +29,7 @@ export default function ExpensesList() {
   const [cursor, setCursor] = useState<string | null>(null);
 
   // 検索クエリを実行
-  const searchResult = useQuery(api.expenses.searchExpenses, {
+  const searchResult = useQuery(api.incomes.searchIncomes, {
     searchText: filters.searchText || undefined,
     category: filters.category || undefined,
     status: filters.status || undefined,
@@ -37,9 +37,9 @@ export default function ExpensesList() {
     dateTo: filters.dateTo || undefined,
     amountMin: filters.amountMin ? parseFloat(filters.amountMin) : undefined,
     amountMax: filters.amountMax ? parseFloat(filters.amountMax) : undefined,
-    paymentMethod: filters.paymentMethod || undefined,
-    hasReceipt: filters.hasReceipt === "" ? undefined : filters.hasReceipt === "true",
-    isDeductible: filters.isDeductible === "" ? undefined : filters.isDeductible === "true",
+    client: filters.client || undefined,
+    withholding: filters.withholding === "" ? undefined : filters.withholding === "true",
+    invoiceIssued: filters.invoiceIssued === "" ? undefined : filters.invoiceIssued === "true",
     sortBy: filters.sortBy,
     sortOrder: filters.sortOrder,
     cursor: cursor || undefined,
@@ -47,12 +47,12 @@ export default function ExpensesList() {
   });
 
   // 集計データを取得
-  const summary = useQuery(api.expenses.getExpensesSummary, {
+  const summary = useQuery(api.incomes.getIncomesSummary, {
     dateFrom: filters.dateFrom || undefined,
     dateTo: filters.dateTo || undefined,
   });
 
-  const deleteExpense = useMutation(api.expenses.deleteExpense);
+  const deleteIncome = useMutation(api.incomes.deleteIncome);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFilters({
@@ -62,10 +62,10 @@ export default function ExpensesList() {
     setCursor(null); // フィルター変更時はページネーションをリセット
   };
 
-  const handleDelete = async (id: Id<"expenses">) => {
-    if (window.confirm("この経費を削除してもよろしいですか？")) {
+  const handleDelete = async (id: Id<"incomes">) => {
+    if (window.confirm("この収入を削除してもよろしいですか？")) {
       try {
-        await deleteExpense({ id });
+        await deleteIncome({ id });
       } catch {
         alert("削除に失敗しました");
       }
@@ -81,9 +81,9 @@ export default function ExpensesList() {
       dateTo: "",
       amountMin: "",
       amountMax: "",
-      paymentMethod: "",
-      hasReceipt: "",
-      isDeductible: "",
+      client: "",
+      withholding: "",
+      invoiceIssued: "",
       sortBy: "date",
       sortOrder: "desc",
     });
@@ -102,9 +102,9 @@ export default function ExpensesList() {
     <div className="p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">経費一覧</h1>
+            <h1 className="text-3xl font-bold text-gray-900">収入一覧</h1>
             <Link
-              href="/dashboard/expenses/new"
+              href="/dashboard/incomes/new"
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               新規登録
@@ -116,9 +116,25 @@ export default function ExpensesList() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
-              <dt className="text-sm font-medium text-gray-700 truncate">合計金額</dt>
+              <dt className="text-sm font-medium text-gray-700 truncate">総収入</dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
                 ¥{summary.totalAmount.toLocaleString()}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-700 truncate">源泉徴収額</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                ¥{summary.totalWithholdingAmount.toLocaleString()}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <dt className="text-sm font-medium text-gray-700 truncate">手取り額</dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                ¥{summary.netAmount.toLocaleString()}
               </dd>
             </div>
           </div>
@@ -127,22 +143,6 @@ export default function ExpensesList() {
               <dt className="text-sm font-medium text-gray-700 truncate">件数</dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
                 {summary.totalCount}件
-              </dd>
-            </div>
-          </div>
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <dt className="text-sm font-medium text-gray-700 truncate">控除対象額</dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                ¥{summary.deductibleAmount.toLocaleString()}
-              </dd>
-            </div>
-          </div>
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <dt className="text-sm font-medium text-gray-700 truncate">検索結果</dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {searchResult.totalCount}件
               </dd>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function ExpensesList() {
                 name="searchText"
                 value={filters.searchText}
                 onChange={handleFilterChange}
-                placeholder="支払先、備考、目的、請求書番号で検索..."
+                placeholder="クライアント名、プロジェクト名、備考で検索..."
                 className="flex-1 mr-4 px-4 py-2 border text-gray-900 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
               <button
@@ -202,26 +202,21 @@ export default function ExpensesList() {
                     <option value="">すべて</option>
                     <option value="draft">下書き</option>
                     <option value="confirmed">確認済み</option>
-                    <option value="submitted">提出済み</option>
+                    <option value="received">入金済み</option>
                   </select>
                 </div>
 
-                {/* 支払方法 */}
+                {/* クライアント */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">支払方法</label>
-                  <select
-                    name="paymentMethod"
-                    value={filters.paymentMethod}
+                  <label className="block text-sm font-medium text-gray-700">クライアント</label>
+                  <input
+                    type="text"
+                    name="client"
+                    value={filters.client}
                     onChange={handleFilterChange}
+                    placeholder="クライアント名"
                     className="mt-1 block w-full text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  >
-                    <option value="">すべて</option>
-                    <option value="現金">現金</option>
-                    <option value="クレジットカード">クレジットカード</option>
-                    <option value="銀行振込">銀行振込</option>
-                    <option value="電子マネー">電子マネー</option>
-                    <option value="その他">その他</option>
-                  </select>
+                  />
                 </div>
 
                 {/* 日付範囲 */}
@@ -272,10 +267,10 @@ export default function ExpensesList() {
 
                 {/* その他のフィルター */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">レシート</label>
+                  <label className="block text-sm font-medium text-gray-700">源泉徴収</label>
                   <select
-                    name="hasReceipt"
-                    value={filters.hasReceipt}
+                    name="withholding"
+                    value={filters.withholding}
                     onChange={handleFilterChange}
                     className="mt-1 block w-full text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   >
@@ -285,16 +280,16 @@ export default function ExpensesList() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">控除対象</label>
+                  <label className="block text-sm font-medium text-gray-700">インボイス発行</label>
                   <select
-                    name="isDeductible"
-                    value={filters.isDeductible}
+                    name="invoiceIssued"
+                    value={filters.invoiceIssued}
                     onChange={handleFilterChange}
                     className="mt-1 block w-full text-gray-900 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   >
                     <option value="">すべて</option>
-                    <option value="true">対象</option>
-                    <option value="false">対象外</option>
+                    <option value="true">発行済み</option>
+                    <option value="false">未発行</option>
                   </select>
                 </div>
 
@@ -310,7 +305,7 @@ export default function ExpensesList() {
                     >
                       <option value="date">日付</option>
                       <option value="amount">金額</option>
-                      <option value="vendor">支払先</option>
+                      <option value="client">クライアント</option>
                     </select>
                     <select
                       name="sortOrder"
@@ -337,41 +332,46 @@ export default function ExpensesList() {
           )}
         </div>
 
-        {/* 経費一覧 */}
+        {/* 収入一覧 */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {searchResult.expenses.length === 0 ? (
+            {searchResult.incomes.length === 0 ? (
               <li className="px-6 py-12 text-center text-gray-700">
-                該当する経費が見つかりません
+                該当する収入が見つかりません
               </li>
             ) : (
-              searchResult.expenses.map((expense) => (
-                <li key={expense._id}>
+              searchResult.incomes.map((income) => (
+                <li key={income._id}>
                   <div className="px-6 py-4 hover:bg-gray-50">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-900">
-                              {expense.vendor}
+                              {income.client}
                             </p>
                             <p className="text-sm text-gray-700">
-                              {expense.category} • {expense.date}
-                              {expense.projectCode && ` • ${expense.projectCode}`}
+                              {income.category} • {income.date}
+                              {income.projectName && ` • ${income.projectName}`}
                             </p>
-                            {expense.description && (
+                            {income.description && (
                               <p className="text-sm text-gray-800 mt-1">
-                                {expense.description}
+                                {income.description}
                               </p>
                             )}
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-gray-900">
-                              ¥{expense.amount.toLocaleString()}
+                              ¥{income.amount.toLocaleString()}
                             </p>
-                            {expense.taxRate && (
+                            {income.withholding && income.withholdingAmount && (
                               <p className="text-xs text-gray-700">
-                                税込（{expense.taxRate}%）
+                                源泉徴収: ¥{income.withholdingAmount.toLocaleString()}
+                              </p>
+                            )}
+                            {income.taxRate && (
+                              <p className="text-xs text-gray-700">
+                                税込（{income.taxRate}%）
                               </p>
                             )}
                           </div>
@@ -380,40 +380,35 @@ export default function ExpensesList() {
                         <div className="mt-2 flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              expense.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-                              expense.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                              income.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                              income.status === 'confirmed' ? 'bg-green-100 text-green-800' :
                               'bg-blue-100 text-blue-800'
                             }`}>
-                              {expense.status === 'draft' ? '下書き' :
-                               expense.status === 'confirmed' ? '確認済み' :
-                               '提出済み'}
+                              {income.status === 'draft' ? '下書き' :
+                               income.status === 'confirmed' ? '確認済み' :
+                               '入金済み'}
                             </span>
-                            {expense.receipt && (
+                            {income.withholding && (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                レシートあり
+                                源泉徴収あり
                               </span>
                             )}
-                            {expense.invoiceNumber && (
+                            {income.invoiceIssued && (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                インボイス
-                              </span>
-                            )}
-                            {expense.isDeductible === false && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                控除対象外
+                                インボイス発行済み
                               </span>
                             )}
                           </div>
 
                           <div className="flex items-center space-x-2">
                             <Link
-                              href={`/dashboard/expenses/${expense._id}/edit`}
+                              href={`/dashboard/incomes/${income._id}/edit`}
                               className="text-sm text-blue-600 hover:text-blue-900"
                             >
                               編集
                             </Link>
                             <button
-                              onClick={() => handleDelete(expense._id)}
+                              onClick={() => handleDelete(income._id)}
                               className="text-sm text-red-600 hover:text-red-900"
                             >
                               削除

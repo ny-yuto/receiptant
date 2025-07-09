@@ -24,3 +24,40 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 入力フィールドのスタイル設定 */
+input,
+textarea,
+select {
+  color: #111827; /* text-gray-900 相当 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af; /* text-gray-400 相当 */
+  opacity: 1;
+}
+
+/* フォーカス時のボーダー */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #3b82f6; /* border-blue-500 相当 */
+}
+
+/* アニメーション */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
