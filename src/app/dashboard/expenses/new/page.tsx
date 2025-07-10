@@ -50,12 +50,19 @@ export default function NewReceipt() {
   const handleImageChange = (file: File) => {
     if (file) {
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+      
+      // PDFの場合はプレビューを生成しない
+      if (file.type === "application/pdf") {
+        setImagePreview("pdf");
         setShowQuickInput(true);
-      };
-      reader.readAsDataURL(file);
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+          setShowQuickInput(true);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -81,8 +88,10 @@ export default function NewReceipt() {
     setIsDragging(false);
 
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file && (file.type.startsWith("image/") || file.type === "application/pdf")) {
       handleImageChange(file);
+    } else {
+      alert("画像またはPDFファイルを選択してください");
     }
   };
 
@@ -220,12 +229,28 @@ export default function NewReceipt() {
                     {imagePreview ? (
                       <div className="relative p-4">
                         <div className="relative h-96 w-full bg-gray-100 rounded-lg overflow-hidden">
-                          <Image
-                            src={imagePreview}
-                            alt="レシート画像"
-                            fill
-                            className="object-contain"
-                          />
+                          {imageFile?.type === "application/pdf" ? (
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <svg
+                                className="w-24 h-24 text-red-600 mb-4"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,17L8,15L10,13V14.5C10.5,14.5 14,14 14,10.5C14,10 13.95,9.53 13.86,9.1L15.83,9.5C15.94,10 16,10.5 16,11C16,15.5 11.5,16.5 10,16.5V17M14,12L16,14L14,16V14.5C13.5,14.5 10,15 10,18.5C10,19 10.05,19.47 10.14,19.9L8.17,19.5C8.06,19 8,18.5 8,18C8,13.5 12.5,12.5 14,12.5V12Z" />
+                              </svg>
+                              <p className="text-gray-700 font-medium">{imageFile.name}</p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                PDFファイル ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
+                              </p>
+                            </div>
+                          ) : (
+                            <Image
+                              src={imagePreview}
+                              alt="レシート画像"
+                              fill
+                              className="object-contain"
+                            />
+                          )}
                         </div>
                         <button
                           type="button"
@@ -285,12 +310,12 @@ export default function NewReceipt() {
                           ref={fileInputRef}
                           type="file"
                           className="hidden"
-                          accept="image/*"
+                          accept="image/*,application/pdf"
                           onChange={handleFileInput}
                           disabled={uploading}
                         />
                         <p className="text-xs text-gray-500 mt-4">
-                          PNG, JPG, HEIF など（最大10MB）
+                          PNG, JPG, HEIF, PDF など（最大10MB）
                         </p>
                       </div>
                     )}
