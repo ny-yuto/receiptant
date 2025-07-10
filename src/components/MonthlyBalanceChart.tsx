@@ -152,7 +152,7 @@ export function MonthlyBalanceChart() {
           
           {/* バーチャート */}
           <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
-            {monthlyBalances.map((month, index) => {
+            {monthlyBalances.map((month) => {
               // 高さを250px基準で計算
               const incomeHeight = month.netIncome > 0 ? (month.netIncome / maxValue) * 250 : 0;
               const expenseHeight = month.expenses > 0 ? (month.expenses / maxValue) * 250 : 0;
