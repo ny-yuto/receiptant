@@ -11,7 +11,7 @@ export default function NewIncome() {
   const createIncome = useMutation(api.incomes.createIncome);
   const categories = useQuery(api.incomeCategories.getIncomeCategories) || [];
   const paymentMethods =
-    useQuery(api.paymentMethods.getPaymentMethods, { type: "income" }) || [];
+    useQuery(api.paymentMethods.getPaymentMethods, {}) || [];
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({

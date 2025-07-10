@@ -384,22 +384,26 @@ export const getIncomesSummary = query({
       >
     );
 
-    // クライアント別集計
-    const clientTotals = incomes.reduce(
+    // クライアント別集計を配列形式で返す
+    const clientTotalsMap = incomes.reduce(
       (acc, income) => {
-        if (!acc[income.client]) {
-          acc[income.client] = { count: 0, amount: 0, withholdingAmount: 0 };
+        if (!acc.has(income.client)) {
+          acc.set(income.client, { count: 0, amount: 0, withholdingAmount: 0 });
         }
-        acc[income.client].count += 1;
-        acc[income.client].amount += income.amount;
-        acc[income.client].withholdingAmount += income.withholdingAmount || 0;
+        const current = acc.get(income.client)!;
+        current.count += 1;
+        current.amount += income.amount;
+        current.withholdingAmount += income.withholdingAmount || 0;
         return acc;
       },
-      {} as Record<
-        string,
-        { count: number; amount: number; withholdingAmount: number }
-      >
+      new Map<string, { count: number; amount: number; withholdingAmount: number }>()
     );
+
+    // Mapを配列に変換
+    const clientTotals = Array.from(clientTotalsMap, ([client, totals]) => ({
+      client,
+      ...totals
+    }));
 
     const totalAmount = incomes.reduce((sum, income) => sum + income.amount, 0);
     const totalWithholdingAmount = incomes.reduce(

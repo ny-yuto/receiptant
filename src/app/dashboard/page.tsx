@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { useEffect } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { MonthlyBalanceChart } from "@/components/MonthlyBalanceChart";
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser();
@@ -25,7 +26,20 @@ export default function Dashboard() {
     useQuery(api.expenseCategories.getExpenseCategories) || [];
   const incomeCategories =
     useQuery(api.incomeCategories.getIncomeCategories) || [];
-  const balanceSummary = useQuery(api.incomes.getBalanceSummary, {}) || null;
+  // 今月の開始日を計算
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0];
+
+  const balanceSummary =
+    useQuery(api.incomes.getBalanceSummary, {
+      dateFrom: startOfMonth,
+      dateTo: endOfMonth,
+    }) || null;
   const initCategories = useMutation(
     api.expenseCategories.initializeExpenseCategories
   );
@@ -160,7 +174,7 @@ export default function Dashboard() {
                   <dd
                     className={`text-lg font-medium ${balanceSummary && balanceSummary.balance >= 0 ? "text-green-600" : "text-red-600"}`}
                   >
-                    {balanceSummary
+                    {balanceSummary && balanceSummary.balance !== undefined
                       ? `¥${balanceSummary.balance.toLocaleString()}`
                       : "¥0"}
                   </dd>
@@ -483,6 +497,11 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* 月別収支グラフ */}
+        <div className="mt-8">
+          <MonthlyBalanceChart />
         </div>
       </div>
     </div>

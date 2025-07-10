@@ -15,7 +15,7 @@ export default function EditIncome() {
   const updateIncome = useMutation(api.incomes.updateIncome);
   const categories = useQuery(api.incomeCategories.getIncomeCategories) || [];
   const paymentMethods =
-    useQuery(api.paymentMethods.getPaymentMethods, { type: "income" }) || [];
+    useQuery(api.paymentMethods.getPaymentMethods, {}) || [];
 
   // 既存の収入データを取得
   const incomes = useQuery(api.incomes.searchIncomes, {
